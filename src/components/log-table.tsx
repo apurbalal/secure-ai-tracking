@@ -11,6 +11,7 @@ import ReactJson from "react-json-view";
 import { Skeleton } from "./ui/skeleton";
 import { FetchedRequestLog } from "@/schema/fetchedRequestLog";
 import { DangerLevel } from "./danger-level";
+import { formatDuration } from "@/utils/formatDuration";
 
 export const LogsTableSkeleton = () => (
   <Table className="w-full flex-1">
@@ -89,11 +90,12 @@ export const LogsTable = ({ logs }: { logs: FetchedRequestLog[] }) => (
           </TableCell>
           <TableCell>{log.method}</TableCell>
           <TableCell>{log.provider.toUpperCase()}</TableCell>
-          <TableCell>{log.duration} ms</TableCell>
+          <TableCell>{formatDuration(log.duration)}</TableCell>
           <TableCell>
             <ReactJson
-              src={log.usageMetadata}
               collapsed
+              name="Usage Metadata"
+              src={log.usageMetadata}
               enableClipboard={false}
             />
           </TableCell>

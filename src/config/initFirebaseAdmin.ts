@@ -24,8 +24,7 @@ if (!admin.apps.length) {
       storageBucket: firebaseConfig.storageBucket,
     });
     admin.firestore().settings({ ignoreUndefinedProperties: true });
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
 export default admin;
