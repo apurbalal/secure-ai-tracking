@@ -17,9 +17,9 @@ export const LogsTableSkeleton = () => (
   <Table className="w-full flex-1">
     <TableHeader>
       <TableRow>
-        <TableHead className="w-20">ID</TableHead>
-        <TableHead className="w-20">Time</TableHead>
+        <TableHead className="w-50">Info</TableHead>
         <TableHead className="w-20">Status</TableHead>
+        <TableHead className="w-20">Security</TableHead>
         <TableHead className="w-20">Method</TableHead>
         <TableHead className="w-20">Provider</TableHead>
         <TableHead className="w-20">Duration</TableHead>
