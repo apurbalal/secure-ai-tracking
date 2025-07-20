@@ -1,10 +1,13 @@
 "use client";
-import { RequestLog, requestLogSchema } from "@/schema/requestLog";
+import {
+  FetchedRequestLog,
+  fetchedRequestLogSchema,
+} from "@/schema/fetchedRequestLog";
 import { useEffect, useState } from "react";
 
 export const useGetLogs = () => {
   const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState<RequestLog[]>([]);
+  const [logs, setLogs] = useState<FetchedRequestLog[]>([]);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -19,7 +22,7 @@ export const useGetLogs = () => {
 
         const data = await response.json();
         const parsedLogs = data.map((log: unknown) =>
-          requestLogSchema.parse(log),
+          fetchedRequestLogSchema.parse(log),
         );
         setLogs(parsedLogs);
       } catch (error) {

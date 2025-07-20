@@ -1,6 +1,6 @@
 import z from "zod";
 
-export const requestLogSchema = z.object({
+export const fetchedRequestLogSchema = z.object({
   duration: z.number(),
   provider: z.string(),
   responseId: z.string(),
@@ -14,6 +14,17 @@ export const requestLogSchema = z.object({
   method: z.string(),
   timestamp: z.number(),
   status: z.number(),
+  security: z
+    .object({
+      reasoning: z.string(),
+      severity: z
+        .number()
+        .min(1)
+        .max(5)
+        .describe("Security severity from 1 to 5"),
+    })
+    .optional()
+    .nullable(),
 });
 
-export type RequestLog = z.infer<typeof requestLogSchema>;
+export type FetchedRequestLog = z.infer<typeof fetchedRequestLogSchema>;

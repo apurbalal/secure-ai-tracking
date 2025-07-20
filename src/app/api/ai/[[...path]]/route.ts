@@ -1,4 +1,5 @@
 import { AI_PROVIDERS } from "@/config/ai-providers";
+import { logSecuritySeverity } from "@/utils/logSecuritySeverity";
 import { logToFirestore } from "@/utils/logToFirestore";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -42,18 +43,25 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
   const targetUrl = `${config.baseUrl}/${providerPath.join("/")}${req.nextUrl.search}`;
   const startTime = Date.now();
 
+  const [stream1, stream2] = req.body?.tee();
+
   const fetchOptions: RequestInit = {
     method: req.method,
     headers: req.headers,
-    body: req.body,
+    body: stream1,
     duplex: "half",
   };
 
+  const uuid = crypto.randomUUID();
+  await logSecuritySeverity(stream2, uuid);
+
+  // const body = await req.json();
+  // console.log("Req Body", body);
+  // console.log("Apurbalal", json);
   try {
     const aiResponse = await fetch(targetUrl, fetchOptions);
     const reader = aiResponse.body?.getReader();
     let usageMetadata: Record<string, any> = {};
-    let responseId = aiResponse.headers.get("x-response-id") || "";
     const stream = new ReadableStream({
       async pull(controller) {
         if (!reader) {
@@ -71,9 +79,9 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
             if (jsonObject.usageMetadata) {
               usageMetadata = jsonObject.usageMetadata;
             }
-            if (jsonObject.responseId) {
-              responseId = jsonObject.responseId;
-            }
+            // if (jsonObject.responseId) {
+            //   responseId = jsonObject.responseId;
+            // }
           } catch {
             // Ignore parsing errors for non-JSON chunks
           }
@@ -90,9 +98,9 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
           await logToFirestore({
             duration,
             provider,
-            responseId,
             usageMetadata,
             url: targetUrl,
+            responseId: uuid,
             method: req.method,
             timestamp: startTime,
             status: aiResponse.status,
@@ -106,6 +114,7 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
       headers: aiResponse.headers,
     });
   } catch (err) {
+    console.log("Proxy error:", err);
     const errorMessage =
       typeof err === "object" && err !== null && "message" in err
         ? (err as { message: string }).message
