@@ -1,4 +1,3 @@
- 
 import { AI_PROVIDERS } from "@/config/ai-providers";
 import { logToFirestore } from "@/utils/logToFirestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -36,7 +35,7 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
   if (!config) {
     return NextResponse.json(
       { error: "Unsupported AI provider" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -54,7 +53,7 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
     const aiResponse = await fetch(targetUrl, fetchOptions);
     const reader = aiResponse.body?.getReader();
     let usageMetadata: Record<string, any> = {};
-    let responseId = aiResponse.headers.get("x-response-id") || ""; 
+    let responseId = aiResponse.headers.get("x-response-id") || "";
     const stream = new ReadableStream({
       async pull(controller) {
         if (!reader) {
@@ -85,18 +84,18 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
         if (done) {
           controller.close();
 
-          const elapsed = Date.now() - startTime;
+          const duration = Date.now() - startTime;
 
           // Log request metadata to Firestore
           await logToFirestore({
-            responseId, 
+            duration,
             provider,
-            method: req.method,
-            url: targetUrl,
-            status: aiResponse.status,
-            elapsed,
+            responseId,
             usageMetadata,
+            url: targetUrl,
+            method: req.method,
             timestamp: startTime,
+            status: aiResponse.status,
           });
         }
       },
@@ -114,7 +113,7 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
 
     return NextResponse.json(
       { error: "Proxy error", details: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
