@@ -1,5 +1,6 @@
 "use client";
 import { LogsTable, LogsTableSkeleton } from "@/components/log-table";
+import { ModeToggle } from "@/components/toggle-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetLogs } from "@/hooks/use-get-logs";
@@ -16,6 +17,7 @@ export default function Home() {
         <Button variant="outline" size="icon">
           <Search />
         </Button>
+        <ModeToggle />
       </div>
       <div className="grid grid-cols-1 border rounded-lg overflow-auto shadow-xs">
         {loading ? <LogsTableSkeleton /> : <LogsTable logs={logs} />}
