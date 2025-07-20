@@ -25,7 +25,6 @@ if (!admin.apps.length) {
     });
     admin.firestore().settings({ ignoreUndefinedProperties: true });
   } catch (error) {
-    console.error("Firebase Admin SDK initialization error:", error);
   }
 }
 

@@ -55,9 +55,6 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
   const uuid = crypto.randomUUID();
   await logSecuritySeverity(stream2, uuid);
 
-  // const body = await req.json();
-  // console.log("Req Body", body);
-  // console.log("Apurbalal", json);
   try {
     const aiResponse = await fetch(targetUrl, fetchOptions);
     const reader = aiResponse.body?.getReader();
@@ -115,7 +112,6 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
       headers: aiResponse.headers,
     });
   } catch (err) {
-    console.log("Proxy error:", err);
     const errorMessage =
       typeof err === "object" && err !== null && "message" in err
         ? (err as { message: string }).message

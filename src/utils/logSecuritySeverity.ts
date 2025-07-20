@@ -42,8 +42,6 @@ export const logSecuritySeverity = async (
       const message = json.contents[json.contents.length - 1];
 
       if (message) {
-        console.log("Apurbalal", message);
-        // Run your validation / logging here
         const response = await generateObject({
           model: google("gemini-2.5-flash"),
           schema: z.object({
@@ -59,7 +57,6 @@ export const logSecuritySeverity = async (
           output: "object",
           prompt: `Analyze the following message for security severity (PII, Sensitive Data, or anything which might cause security issue) and provide sevirity from 1 to 5, where 1 is low severity and 5 is high severity. Provide a brief reasoning for your rating.\n\nMessage: ${JSON.stringify(message)}`,
         });
-        console.log("Security Severity Response:", response.object);
 
         await admin.firestore().collection("ai-logs").doc(responseId).set(
           {
@@ -70,8 +67,8 @@ export const logSecuritySeverity = async (
           },
         );
       }
-    } catch (err) {
-      console.error("Error parsing body as JSON:", err);
+    } catch (_err) {
+      // Do nothing if parsing fails
     }
   }
 };
