@@ -107,8 +107,6 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
       headers: aiResponse.headers,
     });
   } catch (err) {
-    console.error("Proxy error", err);
-
     const errorMessage =
       typeof err === "object" && err !== null && "message" in err
         ? (err as { message: string }).message
