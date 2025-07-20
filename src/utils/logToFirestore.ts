@@ -9,7 +9,7 @@ export async function logToFirestore(log: unknown) {
       await admin
         .firestore()
         .collection("ai-logs")
-        .doc(safeParsed.data.responseId)
+        .doc(safeParsed.data.id)
         .set(
           {
             ...safeParsed.data,

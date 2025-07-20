@@ -70,18 +70,18 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
         }
 
         const { done, value } = await reader.read();
+        let responseId = uuid; // Default to UUID if not found in chunk
 
         if (value) {
           const chunkString = new TextDecoder().decode(value);
-
           try {
             const jsonObject = JSON.parse(chunkString.replace(/^data:\s*/, ""));
             if (jsonObject.usageMetadata) {
               usageMetadata = jsonObject.usageMetadata;
             }
-            // if (jsonObject.responseId) {
-            //   responseId = jsonObject.responseId;
-            // }
+            if (jsonObject.responseId) {
+              responseId = jsonObject.responseId;
+            }
           } catch {
             // Ignore parsing errors for non-JSON chunks
           }
@@ -96,11 +96,12 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
 
           // Log request metadata to Firestore
           await logToFirestore({
+            id: uuid,
             duration,
             provider,
             usageMetadata,
             url: targetUrl,
-            responseId: uuid,
+            responseId,
             method: req.method,
             timestamp: startTime,
             status: aiResponse.status,

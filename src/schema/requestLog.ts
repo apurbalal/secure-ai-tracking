@@ -1,6 +1,7 @@
 import z from "zod";
 
 export const requestLogSchema = z.object({
+  id: z.string(),
   duration: z.number(),
   provider: z.string(),
   responseId: z.string(),
