@@ -1,66 +1,122 @@
-import { AI_PROVIDERS } from '@/config/ai-providers';
-import { NextRequest } from 'next/server';
+ 
+import { AI_PROVIDERS } from "@/config/ai-providers";
+import { logToFirestore } from "@/utils/logToFirestore";
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = 'nodejs'; // ensure node runtime for streaming support
+export const runtime = "nodejs"; // Ensure node runtime for streaming support
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+type Params = Promise<{ path: string[] }>;
+
+// HTTP Method Handlers
+export async function POST(req: NextRequest, { params }: { params: Params }) {
   const { path } = await params;
   return handleProxy(req, path);
 }
 
-export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(req: NextRequest, { params }: { params: Params }) {
   const { path } = await params;
   return handleProxy(req, path);
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { path: string[] } }) {
+export async function PUT(req: NextRequest, { params }: { params: Params }) {
   const { path } = await params;
   return handleProxy(req, path);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Params }) {
   const { path } = await params;
   return handleProxy(req, path);
 }
 
+// Proxy Handler
 async function handleProxy(req: NextRequest, pathSegments: string[]) {
   const [provider, ...providerPath] = pathSegments || [];
   const config = AI_PROVIDERS[provider];
 
   if (!config) {
-    return new Response(JSON.stringify({ error: 'Unsupported AI provider' }), { status: 400 });
+    return NextResponse.json(
+      { error: "Unsupported AI provider" },
+      { status: 400 }
+    );
   }
 
-  const providerUrl = `${config.baseUrl}/${providerPath.join('/')}${req.nextUrl.search}`;
+  const targetUrl = `${config.baseUrl}/${providerPath.join("/")}${req.nextUrl.search}`;
+  const startTime = Date.now();
 
-  // const authHeader = req.headers.get('authorization');
-  // if (!authHeader) {
-  //   return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401 });
-  // }
-
-  // Stream or JSON body
   const fetchOptions: RequestInit = {
     method: req.method,
-    headers: {
-      ...Object.fromEntries(req.headers),
-    },
-    body: req.body ? req.body : undefined,
-    duplex: 'half' // for streaming
+    headers: req.headers,
+    body: req.body,
+    duplex: "half",
   };
 
-  console.log(`Proxying ${req.method} ${providerUrl}`);
-
   try {
-    const providerResponse = await fetch(providerUrl, fetchOptions);
+    const aiResponse = await fetch(targetUrl, fetchOptions);
+    const reader = aiResponse.body?.getReader();
+    let usageMetadata: Record<string, any> = {};
+    let responseId = aiResponse.headers.get("x-response-id") || ""; 
+    const stream = new ReadableStream({
+      async pull(controller) {
+        if (!reader) {
+          controller.close();
+          return;
+        }
 
-    // Stream directly to client
-    return new Response(providerResponse.body, {
-      status: providerResponse.status,
-      headers: providerResponse.headers
+        const { done, value } = await reader.read();
+
+        if (value) {
+          const chunkString = new TextDecoder().decode(value);
+
+          try {
+            const jsonObject = JSON.parse(chunkString.replace(/^data:\s*/, ""));
+            if (jsonObject.usageMetadata) {
+              usageMetadata = jsonObject.usageMetadata;
+            }
+            if (jsonObject.responseId) {
+              responseId = jsonObject.responseId;
+            }
+          } catch {
+            // Ignore parsing errors for non-JSON chunks
+          }
+
+          controller.enqueue(value);
+        }
+
+        if (done) {
+          controller.close();
+
+          const elapsed = Date.now() - startTime;
+
+          // Log request metadata to Firestore
+          await logToFirestore({
+            responseId, 
+            provider,
+            method: req.method,
+            url: targetUrl,
+            status: aiResponse.status,
+            elapsed,
+            usageMetadata,
+            timestamp: startTime,
+          });
+        }
+      },
     });
 
-  } catch (err: any) {
-    console.error('Proxy error', err);
-    return new Response(JSON.stringify({ error: 'Proxy error', details: err.message }), { status: 500 });
+    return new Response(stream, {
+      status: aiResponse.status,
+      headers: aiResponse.headers,
+    });
+  } catch (err) {
+    console.error("Proxy error", err);
+
+    const errorMessage =
+      typeof err === "object" && err !== null && "message" in err
+        ? (err as { message: string }).message
+        : String(err);
+
+    return NextResponse.json(
+      { error: "Proxy error", details: errorMessage },
+      { status: 500 }
+    );
   }
 }
